@@ -2,11 +2,10 @@ const path = require("path");
 
 module.exports = {
 	entry: {
-    // for each page, append to dict in the format:
-    // name: "./static/ts/{filename}.tsx",
-    index: "./static/ts/index.tsx", 
-    itemviewer: "./static/ts/itemviewer.tsx"
-  },
+		index: "./pill_pal/static/ts/index.tsx",
+		itemviewer: "./pill_pal/static/ts/itemviewer.tsx"
+	},
+
 	externals: {
 		"bootstrap": "bootstrap",
 		"react": "React",
@@ -14,8 +13,8 @@ module.exports = {
 	},
 
 	output: {
-	  filename: "[name].js",
-	  path: path.resolve(__dirname, "static", "js"),
+		filename: "[name].js",
+		path: path.resolve(__dirname, "pill_pal", "static", "js"),
 	},
 
 	module: {
