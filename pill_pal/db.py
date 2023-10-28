@@ -189,9 +189,23 @@ SELECT (id, medication_id, quantity, doctor_name, patient_name, instructions)
 
 		return [Perscription(*row) for row in self.database.cursor.fetchall()]
 
+class Inventory(typing.NamedTuple):
+	id: str
+	medication_id: str
+	quantity: int
+	timestamp: datetime.datetime
+
 class InventoryModel(Model):
 	def add_inventory(self, medication_id: str, quantity: int) -> None:
 		self.database.cursor.execute(
 			"INSERT INTO inventory (medication_id, quantity) VALUES (?, ?);",
 			(medication_id, quantity)
 		)
+
+	def inventory_for_medication(self, medication_id: str) -> list[Inventory]:
+		self.database.cursor.execute(
+			"SELECT id, medication_id, quantity, timestamp FROM inventory WHERE medication_id = ?;",
+			(medication_id,)
+		)
+
+		return [Inventory(*row) for row in self.database.cursor.fetchall()]
