@@ -6,4 +6,4 @@ trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
 node_modules/.bin/webpack build --mode development --watch &
 
-FLASK_DEBUG=true flask run
+FLASK_APP=pill_pal.app FLASK_DEBUG=true flask run
