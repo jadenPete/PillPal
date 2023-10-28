@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS substances(
 	id UUID PRIMARY KEY,
 	name TEXT NOT NULL,
 	vendor TEXT,
-	perscribed BOOLEAN NOT NULL
+	prescribed BOOLEAN NOT NULL
 );"""
 		)
 
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS inventory(
 	def medication(self) -> 'MedicationModel':
 		return MedicationModel(self)
 
-	def perscriptions(self) -> 'PerscriptionModel':
+	def prescriptions(self) -> 'PerscriptionModel':
 		return PerscriptionModel(self)
 
 	def inventory(self) -> 'InventoryModel':
@@ -82,17 +82,17 @@ class Substance(typing.NamedTuple):
 	id: str
 	name: str
 	vendor: str
-	perscribed: bool
+	prescribed: bool
 
 class SubstanceModel(Model):
-	def create_substance(self, name: str, vendor: str, perscribed: bool) -> None:
+	def create_substance(self, name: str, vendor: str, prescribed: bool) -> None:
 		self.database.cursor.execute(
-			"INSERT INTO substances (name, vendor, perscribed) VALUES (?, ?, ?);",
-			(name, vendor, perscribed)
+			"INSERT INTO substances (name, vendor, prescribed) VALUES (?, ?, ?);",
+			(name, vendor, prescribed)
 		)
 
 	def substances(self) -> list[Substance]:
-		self.database.cursor.execute("SELECT id, name, vendor, perscribed FROM substances;")
+		self.database.cursor.execute("SELECT id, name, vendor, prescribed FROM substances;")
 
 		return [Substance(*row) for row in self.database.cursor.fetchall()]
 
@@ -162,7 +162,7 @@ class Perscription(typing.NamedTuple):
 	instructions: str
 
 class PerscriptionModel(Model):
-	def create_perscription(
+	def create_prescription(
 		self,
 		medication_id: str,
 		quantity: int,
@@ -172,17 +172,17 @@ class PerscriptionModel(Model):
 	) -> None:
 		self.database.cursor.execute(
 			"""
-INSERT INTO perscription
+INSERT INTO prescription
 	(medication_id, quantity, doctor_name, patient_name, instructions)
 	VALUES (?, ?, ?, ?, ?);""",
 			(medication_id, quantity, doctor_name, patient_name, instructions)
 		)
 
-	def perscriptions_for_medication(self, medication_id: str) -> list[Perscription]:
+	def prescriptions_for_medication(self, medication_id: str) -> list[Perscription]:
 		self.database.cursor.execute(
 			"""
 SELECT (id, medication_id, quantity, doctor_name, patient_name, instructions)
-	FROM perscriptions
+	FROM prescriptions
 	WHERE medication_id = ?;", (medication_id,);""",
 			(medication_id,)
 		)
