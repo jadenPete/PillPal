@@ -13,15 +13,15 @@ def get_db() -> Database:
 
 @app.route("/")
 def index():
-	return flask.redirect(flask.url_for("all_medication"))
+  return flask.redirect(flask.url_for("all_medication"))
 
 @app.route("/medication")
 def all_medication():
 	return flask.render_template("all_medication.html")
 
 @app.route("/medication/<id>")
-def single_medication(_):
-	pass
+def single_medication(id):
+  return flask.render_template("itemviewer.html")
 
 @app.route("/prescription/create")
 def create_prescription():
