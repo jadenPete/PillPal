@@ -1,12 +1,44 @@
-import React, { ChangeEvent, FormEvent, useRef, useState } from "react";
+import * as bootstrap from "bootstrap";
+import React, { ChangeEvent, FormEvent, forwardRef, useRef, useState } from "react";
 import * as ReactDOMClient from "react-dom/client";
 import { capitalizeDosageForm, DosageForm, Medication, useSearchedMedications } from "./common";
+
+enum Page {
+	CreateMedication,
+	CreatePrescription
+}
 
 enum FulfillmentMode {
 	AddInventory,
 	AddMedication,
 	AddSubstance
 }
+
+const page = window.location.pathname == "/prescription/create" ?
+	Page.CreatePrescription :
+	Page.CreateMedication;
+
+const NoticeModal = forwardRef<HTMLDivElement, {notices: string}>((props, ref) => {
+	return <div className="modal" tabIndex={-1} ref={ref}>
+		<div className="modal-dialog">
+			<div className="modal-content">
+				<div className="modal-header">
+					<h5 className="modal-title">Fulfillment Notice Acknowledgement Required</h5>
+				</div>
+
+				<div className="modal-body">
+					{props.notices}
+				</div>
+
+				<div className="modal-footer">
+					<button type="button" className="btn btn-primary" data-bs-dismiss="modal">
+						Ok
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+});
 
 function App() {
 	const [name, setName] = useState("");
@@ -15,6 +47,8 @@ function App() {
 	const [matchingName, setMatchingName] = useState<Medication | undefined>(undefined);
 	const [matchingNameAndForm, setMatchingNameAndForm] =
 		useState<Medication | undefined>(undefined);
+
+	const noticeModalRef = useRef<HTMLDivElement>();
 
 	let mode: FulfillmentMode
 
@@ -59,6 +93,10 @@ function App() {
 
 		const formData = new FormData(event.currentTarget);
 
+		if (!await possibleInterruptSubmission()) {
+			return;
+		}
+
 		let substanceID: string;
 		let medicationID: string;
 
@@ -96,8 +134,38 @@ function App() {
 		window.location.href = "/";
 	}
 
+	async function possibleInterruptSubmission(): Promise<boolean> {
+		if (page == Page.CreatePrescription) {
+			if (mode != FulfillmentMode.AddInventory) {
+				alert(
+					"Unfortunately, you're unable to register new substances or medications. Please ask a pharmacist to, or fulfill an existing substance or medication."
+				);
+
+				return false;
+			}
+
+			let closeModal: () => void;
+
+			const modalClosed = new Promise(resolve => {
+				closeModal = () => resolve(undefined);
+			})
+
+			noticeModalRef.current.addEventListener("hide.bs.modal", () => {
+				closeModal();
+			});
+
+			new bootstrap.Modal(noticeModalRef.current).show();
+
+			await modalClosed;
+		}
+
+		return true;
+	}
+
 	return <div className="container">
 		<form encType="multipart/form-data" onSubmit={handleFormSubmit}>
+			<NoticeModal notices={matchingName?.substance?.notices ?? ""} ref={noticeModalRef}/>
+
 			<div className="form-floating">
 				<input
 					type="text"
@@ -177,6 +245,24 @@ function App() {
 
 				<label className="form-check-label" htmlFor="substance-prescribed-input">
 					Must be prescribed
+				</label>
+			</div>
+
+			<div className="form-floating">
+				<textarea
+					id="substance-notices-textarea"
+					className="form-control mb-2"
+					autoComplete="off"
+					disabled={mode != FulfillmentMode.AddSubstance}
+					name="notices"
+					required
+					{...matchingName == undefined ? {} : {
+						value: matchingName.substance.notices
+					}}>
+				</textarea>
+
+				<label htmlFor="substance-notices-textarea">
+					Fulfillment notices (separate each notice with a newline)
 				</label>
 			</div>
 
@@ -263,13 +349,13 @@ function App() {
 
 			<div className="form-floating">
 				<textarea
-					id="prescription-instructions"
+					id="prescription-instructions-textarea"
 					className="form-control mb-2"
 					autoComplete="off"
 					name="instructions"
 					required/>
 
-				<label htmlFor="prescription-instructions">Prescription instructions</label>
+				<label htmlFor="prescription-instructions-textarea">Prescription instructions</label>
 			</div>
 
 			<div className="mb-3">
@@ -284,7 +370,6 @@ function App() {
 					name="image"
 					required/>
 			</div>
-
 
 			<button type="submit" className="btn btn-primary">Submit</button>
 		</form>

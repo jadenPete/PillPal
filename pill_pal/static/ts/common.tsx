@@ -33,6 +33,7 @@ export interface Substance {
 	name: string
 	vendor: string
 	prescribed: boolean
+	notices: string
 }
 
 export function capitalizeDosageForm(dosageForm: DosageForm) {

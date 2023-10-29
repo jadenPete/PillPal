@@ -22,6 +22,10 @@ def index():
 def all_medication():
 	return flask.render_template("all_medication.html")
 
+@app.route("/medication/create")
+def create_medication():
+	return flask.render_template("create_prescription.html")
+
 @app.route("/medication/<medication_id>")
 def single_medication(medication_id):
     if get_db().medication().medication_single(medication_id) is None:
@@ -136,6 +140,7 @@ def api_create_substance():
         flask.request.form["name"],
         flask.request.form["vendor"],
         flask.request.form.get("prescribed") == "on",
+        flask.request.form["notices"],
     )
 
     return flask.jsonify(substance_id)
