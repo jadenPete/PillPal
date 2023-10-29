@@ -7,12 +7,11 @@ function App() {
 
 	return (
 		<div className="row" id="shift">
-			<div className="col-8">
-				<PerscriptionList medicationID={medicationID}/>
-			</div>
-
 			<div className="col-4">
 				<MedicationPanel medicationID={medicationID}/>
+			</div>
+			<div className="col-8">
+				<PrescriptionList medicationID={medicationID}/>
 			</div>
 		</div>
 	);
@@ -47,7 +46,7 @@ function MedicationPanel(props: {
 	</div>;
 }
 
-function PerscriptionList(props: {
+function PrescriptionList(props: {
 	medicationID: string
 }) {
 	const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);

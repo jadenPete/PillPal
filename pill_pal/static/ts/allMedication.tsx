@@ -51,7 +51,7 @@ function MedicationCard(props: {
 function MedicationCardContainer(props: {
 	medications: Medication[]
 }) {
-	return <div className="d-flex flex-wrap gap-3">
+	return <div className="d-flex flex-wrap justify-content-center gap-3">
 		{props.medications.map(medication =>
 			<MedicationCard key={medication.id} medication={medication}/>
 		)}
