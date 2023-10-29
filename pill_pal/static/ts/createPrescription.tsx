@@ -1,4 +1,5 @@
-import React, { ChangeEvent, FormEvent, useRef, useState } from "react";
+import * as bootstrap from "bootstrap";
+import React, { ChangeEvent, FormEvent, forwardRef, useRef, useState } from "react";
 import * as ReactDOMClient from "react-dom/client";
 import { capitalizeDosageForm, DosageForm, Medication, useSearchedMedications } from "./common";
 
@@ -17,6 +18,28 @@ const page = window.location.pathname == "/prescription/create" ?
 	Page.CreatePrescription :
 	Page.CreateMedication;
 
+const NoticeModal = forwardRef<HTMLDivElement, {notices: string}>((props, ref) => {
+	return <div className="modal" tabIndex={-1} ref={ref}>
+		<div className="modal-dialog">
+			<div className="modal-content">
+				<div className="modal-header">
+					<h5 className="modal-title">Fulfillment Notice Acknowledgement Required</h5>
+				</div>
+
+				<div className="modal-body">
+					{props.notices}
+				</div>
+
+				<div className="modal-footer">
+					<button type="button" className="btn btn-primary" data-bs-dismiss="modal">
+						Ok
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+});
+
 function App() {
 	const [name, setName] = useState("");
 	const [dosageForm, setDosageForm] = useState("");
@@ -24,6 +47,8 @@ function App() {
 	const [matchingName, setMatchingName] = useState<Medication | undefined>(undefined);
 	const [matchingNameAndForm, setMatchingNameAndForm] =
 		useState<Medication | undefined>(undefined);
+
+	const noticeModalRef = useRef<HTMLDivElement>();
 
 	let mode: FulfillmentMode
 
@@ -66,11 +91,11 @@ function App() {
 	async function handleFormSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
-		if (!possibleInterruptSubmission()) {
+		const formData = new FormData(event.currentTarget);
+
+		if (!await possibleInterruptSubmission()) {
 			return;
 		}
-
-		const formData = new FormData(event.currentTarget);
 
 		let substanceID: string;
 		let medicationID: string;
@@ -109,7 +134,7 @@ function App() {
 		window.location.href = "/";
 	}
 
-	function possibleInterruptSubmission(): boolean {
+	async function possibleInterruptSubmission(): Promise<boolean> {
 		if (page == Page.CreatePrescription) {
 			if (mode != FulfillmentMode.AddInventory) {
 				alert(
@@ -119,7 +144,19 @@ function App() {
 				return false;
 			}
 
-			alert(matchingNameAndForm.substance.notices);
+			let closeModal: () => void;
+
+			const modalClosed = new Promise(resolve => {
+				closeModal = () => resolve(undefined);
+			})
+
+			noticeModalRef.current.addEventListener("hide.bs.modal", () => {
+				closeModal();
+			});
+
+			new bootstrap.Modal(noticeModalRef.current).show();
+
+			await modalClosed;
 		}
 
 		return true;
@@ -127,6 +164,8 @@ function App() {
 
 	return <div className="container">
 		<form encType="multipart/form-data" onSubmit={handleFormSubmit}>
+			<NoticeModal notices={matchingName?.substance?.notices ?? ""} ref={noticeModalRef}/>
+
 			<div className="form-floating">
 				<input
 					type="text"
@@ -218,8 +257,9 @@ function App() {
 					name="notices"
 					required
 					{...matchingName == undefined ? {} : {
-						checked: matchingName.substance.notices
-					}}/>
+						value: matchingName.substance.notices
+					}}>
+				</textarea>
 
 				<label htmlFor="substance-notices-textarea">
 					Fulfillment notices (separate each notice with a newline)
@@ -330,7 +370,6 @@ function App() {
 					name="image"
 					required/>
 			</div>
-
 
 			<button type="submit" className="btn btn-primary">Submit</button>
 		</form>
