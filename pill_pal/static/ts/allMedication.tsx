@@ -1,16 +1,30 @@
-import React, { useEffect, useState } from "react"
+import React, { ChangeEventHandler, useEffect, useState } from "react"
 import * as ReactDOMClient from "react-dom/client"
 import { Medication, MedicationInformation } from "./common";
 
 function App() {
+	const [medications, setMedications] = useState<Medication[]>([]);
+
+	function updateSearchQuery(query: string) {
+		fetch(query == "" ? "/api/medication" : `/api/medication/search?query=${query}`)
+			.then(response => response.json())
+			.then(medications => {
+				setMedications(medications)
+			});
+	}
+
+	useEffect(() => {
+		updateSearchQuery("")
+	}, []);
+
 	return <div className="container-fluid justify-content-center gx-5 mb-5">
 		<div className="row justify-content-center">
-			<div className="col-lg-6 py-3">
-				<SearchBar/>
+			<div className="get_medication_by_medscol-lg-6 py-3">
+				<SearchBar onChange={event => updateSearchQuery(event.target.value)}/>
 			</div>
 		</div>
 
-		<MedicationCardContainer/>
+		<MedicationCardContainer medications={medications}/>
 	</div>;
 }
 
@@ -34,23 +48,19 @@ function MedicationCard(props: {
 	</a>;
 }
 
-function MedicationCardContainer() {
-	const [medications, setMedications] = useState<Medication[]>([]);
-
-	useEffect(() => {
-		fetch("/api/medication")
-			.then(response => response.json())
-			.then(medications => setMedications(medications));
-	}, []);
-
+function MedicationCardContainer(props: {
+	medications: Medication[]
+}) {
 	return <div className="d-flex flex-wrap gap-3">
-		{medications.map(medication =>
+		{props.medications.map(medication =>
 			<MedicationCard key={medication.id} medication={medication}/>
 		)}
 	</div>;
 }
 
-function SearchBar() {
+function SearchBar(props: {
+	onChange: ChangeEventHandler<HTMLInputElement>
+}) {
 	return <div className="input-group shadow-2">
 		<span id="search-icon" className="input-group-text">
 			<i className="bi bi-search"/>
@@ -61,7 +71,8 @@ function SearchBar() {
 			className="form-control bg-body-tertiary"
 			placeholder="Search for a medication"
 			aria-label="Search for medication"
-			aria-describedby="search-icon"/>
+			aria-describedby="search-icon"
+			onChange={props.onChange}/>
 	</div>;
 }
 
