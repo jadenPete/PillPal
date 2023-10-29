@@ -141,17 +141,27 @@ INSERT INTO medication
 			)
 		)
 
-	def medication(self) -> list[Medication]:
+	def medication_all(self) -> list[Medication]:
 		self.database.cursor.execute(
 			"""
 SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype
-	FROM substances;"""
+	FROM medication;"""
 		)
 
 		return [
 			Substance(*row[:2], DosageForm(row[2]), *row[3:])
 			for row in self.database.cursor.fetchall()
 		]
+  
+	def medication_single(self) -> Medication:
+		self.database.cursor.execute(
+			"""
+SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype
+	FROM medication
+ 	WHERE id = ?;"""
+		)
+
+		return Medication(*self.database.cursor.fetchone())
 
 class Perscription(typing.NamedTuple):
 	id: str
