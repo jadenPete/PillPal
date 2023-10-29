@@ -15,14 +15,6 @@
   max-height:90vh;
 }
 
-/**
- Basic shift of the left table from the edge of the screen.
-*/
-#shift {
-  margin-left:15px !important;
-}
-
-
 body {
   overflow-x: hidden !important;
 }
