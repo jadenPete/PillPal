@@ -6,6 +6,7 @@ from pill_pal.config import get_config
 import psycopg
 import psycopg.rows
 import typing
+import os
 
 class Database:
 	connection: psycopg.Connection[psycopg.rows.TupleRow]
@@ -158,17 +159,23 @@ class Medication(typing.NamedTuple):
 		}
 
 class MedicationModel(Model):
-	def create_medication(
+    def read_image_file(self, filename: str) -> bytes:
+        with open(os.path.join('static', 'img', filename), 'rb') as f:
+            return f.read()
+    
+    def create_medication(
 		self,
 		substance_id: str,
 		dosage_form: DosageForm,
 		unit_mg: int,
 		cents_per_unit: int,
 		shelf_life: datetime.timedelta,
-		image: bytes,
+		image_file: str,
 		image_mimetype: str,
 	) -> None:
-		self.database.cursor.execute(
+        
+        image = self.read_image_file(image_file)
+        self.database.cursor.execute(
 			"""
 INSERT INTO medication
 	(substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype)
@@ -183,32 +190,32 @@ INSERT INTO medication
 				image_mimetype
 			)
 		)
-
-	def medication_all(self) -> list[Medication]:
-		self.database.cursor.execute(
+        
+    def medication_all(self) -> list[Medication]:
+        self.database.cursor.execute(
 			"""
 SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype
 	FROM medication;"""
 		)
-
-		return [
+        
+        return [
 			Medication(*row[:2], DosageForm(row[2]), *row[3:])
 			for row in self.database.cursor.fetchall()
 		]
-
-	def medication_single(self, medication_id: str) -> typing.Optional[Medication]:
-		self.database.cursor.execute(
+        
+    def medication_single(self, medication_id: str) -> typing.Optional[Medication]:
+        self.database.cursor.execute(
 			"""
 SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype
 	FROM medication
  	WHERE id = %s;""",
 	 		(medication_id,)
 		)
-
-		row = self.database.cursor.fetchone()
-
-		if row is not None:
-			return Medication(*row[:2], DosageForm(row[2]), *row[3:])
+        
+        row = self.database.cursor.fetchone()
+        
+        if row is not None:
+            return Medication(*row[:2], DosageForm(row[2]), *row[3:])
 
 class Prescription(typing.NamedTuple):
 	id: str
