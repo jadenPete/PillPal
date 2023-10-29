@@ -1,31 +1,6 @@
 import React, { useEffect, useState } from "react"
 import * as ReactDOMClient from "react-dom/client"
-
-enum DosageForm {
-	Tablet = "tablet",
-	Capsule = "capsule",
-	Syrup = "syrup",
-	Suspension = "suspension",
-	Injection = "injection",
-	Topical = "topical"
-}
-
-type Medication = {
-	id: string
-	substance: Substance
-	dosageForm: DosageForm
-	unitMg: number
-	centsPerUnit: number
-	shelfLife: string
-	imageURL: string
-};
-
-type Substance = {
-	id: string
-	name: string
-	vendor: string
-	prescribed: boolean
-};
+import { Medication } from "./common";
 
 function App() {
 	return <div className="container-fluid justify-content-center gx-5 mb-5">
@@ -44,7 +19,9 @@ function MedicationCard(props: {
 }) {
 	const dosageForm = props.medication.dosageForm;
 
-	return <a className="medication-card card bg-body-secondary border-0 shadow-2 text-decoration-none" href="#">
+	return <a
+		className="medication-card card bg-body-secondary border-0 shadow-2 text-decoration-none"
+		href={`/medication/${props.medication.id}`}>
 		<img className="card-img-top" src={props.medication.imageURL}/>
 		<div className="card-body">
 			<h5 className="card-title">
@@ -81,22 +58,6 @@ function MedicationCardContainer() {
 			.then(response => response.json())
 			.then(medications => setMedications(medications));
 	}, []);
-
-	// const medications = Array<Medication>(10).fill({
-	// 	id: "7de68f37-4103-486b-baa8-cbd802634771",
-	// 	substance: {
-	// 		id: "id",
-	// 		name: "Marijuana",
-	// 		vendor: "Raven's dealer",
-	// 		prescribed: true
-	// 	},
-
-	// 	dosageForm: DosageForm.Capsule,
-	// 	unitMg: 1,
-	// 	centsPerUnit: 1,
-	// 	shelfLife: "1 month",
-	// 	imageURL: "https://leafly-cms-production.imgix.net/wp-content/uploads/2020/06/22172933/cannabis-capsule.jpg?auto=compress"
-	// });
 
 	return <div className="d-flex flex-wrap gap-3">
 		{medications.map(medication =>

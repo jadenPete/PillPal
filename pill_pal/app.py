@@ -19,8 +19,8 @@ def index():
 def all_medication():
 	return flask.render_template("all_medication.html")
 
-@app.route("/medication/<id>")
-def single_medication(id):
+@app.route("/medication/<medication_id>")
+def single_medication(medication_id):
   return flask.render_template("single_medication.html")
 
 @app.route("/prescription/create")
@@ -40,7 +40,7 @@ def api_medication_single(medication_id: str):
     if medication is None:
         return flask.Response(status=404)
 
-    return flask.jsonify(medication.to_dict())
+    return flask.jsonify(medication.to_dict(get_db()))
 
 @app.route("/api/medication/<medication_id>/image")
 def api_medication_image(medication_id: str):
@@ -55,11 +55,12 @@ def api_medication_image(medication_id: str):
 
 @app.route("/api/medication/<medication_id>/prescriptions")
 def api_medication_prescriptions(medication_id: str):
-    db = get_db()
-    prescriptions = db.prescription().prescriptions_for_medication(medication_id)
+    prescriptions = get_db().prescriptions().prescriptions_for_medication(medication_id)
+
     if prescriptions is None:
-        flask.abort(404)
-    return flask.jsonify(prescriptions)
+        return flask.Response(status=404)
+
+    return flask.jsonify([perscription.to_dict() for perscription in prescriptions])
 
 @app.route("/api/medication/<medication_id>/quantity")
 def api_medication_quantity(medication_id: str):
