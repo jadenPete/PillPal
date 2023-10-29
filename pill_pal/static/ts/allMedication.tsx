@@ -1,21 +1,9 @@
-import React, { ChangeEventHandler, useEffect, useState } from "react"
-import * as ReactDOMClient from "react-dom/client"
-import { Medication, MedicationInformation } from "./common";
+import React, { ChangeEventHandler, useEffect, useState } from "react";
+import * as ReactDOMClient from "react-dom/client";
+import { Medication, MedicationInformation, useSearchedMedications } from "./common";
 
 function App() {
-	const [medications, setMedications] = useState<Medication[]>([]);
-
-	function updateSearchQuery(query: string) {
-		fetch(query == "" ? "/api/medication" : `/api/medication/search?query=${query}`)
-			.then(response => response.json())
-			.then(medications => {
-				setMedications(medications)
-			});
-	}
-
-	useEffect(() => {
-		updateSearchQuery("")
-	}, []);
+	const [_, medications, updateSearchQuery] = useSearchedMedications();
 
 	return <div className="container-fluid justify-content-center gx-5 mb-5">
 		<div className="row justify-content-center">
