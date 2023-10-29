@@ -2,11 +2,20 @@ import React, { ChangeEvent, FormEvent, useRef, useState } from "react";
 import * as ReactDOMClient from "react-dom/client";
 import { capitalizeDosageForm, DosageForm, Medication, useSearchedMedications } from "./common";
 
+enum Page {
+	CreateMedication,
+	CreatePrescription
+}
+
 enum FulfillmentMode {
 	AddInventory,
 	AddMedication,
 	AddSubstance
 }
+
+const page = window.location.pathname == "/prescription/create" ?
+	Page.CreatePrescription :
+	Page.CreateMedication;
 
 function App() {
 	const [name, setName] = useState("");
@@ -57,6 +66,10 @@ function App() {
 	async function handleFormSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
+		if (!possibleInterruptSubmission()) {
+			return;
+		}
+
 		const formData = new FormData(event.currentTarget);
 
 		let substanceID: string;
@@ -94,6 +107,22 @@ function App() {
 		});
 
 		window.location.href = "/";
+	}
+
+	function possibleInterruptSubmission(): boolean {
+		if (page == Page.CreatePrescription) {
+			if (mode != FulfillmentMode.AddInventory) {
+				alert(
+					"Unfortunately, you're unable to register new substances or medications. Please ask a pharmacist to, or fulfill an existing substance or medication."
+				);
+
+				return false;
+			}
+
+			alert(matchingNameAndForm.substance.notices);
+		}
+
+		return true;
 	}
 
 	return <div className="container">
@@ -181,6 +210,23 @@ function App() {
 			</div>
 
 			<div className="form-floating">
+				<textarea
+					id="substance-notices-textarea"
+					className="form-control mb-2"
+					autoComplete="off"
+					disabled={mode != FulfillmentMode.AddSubstance}
+					name="notices"
+					required
+					{...matchingName == undefined ? {} : {
+						checked: matchingName.substance.notices
+					}}/>
+
+				<label htmlFor="substance-notices-textarea">
+					Fulfillment notices (separate each notice with a newline)
+				</label>
+			</div>
+
+			<div className="form-floating">
 				<input
 					type="number"
 					id="medication-unit-mg-input"
@@ -263,13 +309,13 @@ function App() {
 
 			<div className="form-floating">
 				<textarea
-					id="prescription-instructions"
+					id="prescription-instructions-textarea"
 					className="form-control mb-2"
 					autoComplete="off"
 					name="instructions"
 					required/>
 
-				<label htmlFor="prescription-instructions">Prescription instructions</label>
+				<label htmlFor="prescription-instructions-textarea">Prescription instructions</label>
 			</div>
 
 			<div className="mb-3">

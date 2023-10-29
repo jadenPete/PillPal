@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS substances(
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	name TEXT NOT NULL,
 	vendor TEXT,
-	prescribed BOOLEAN NOT NULL
+	prescribed BOOLEAN NOT NULL,
+	notices TEXT NOT NULL
 );"""
 		)
 
@@ -86,27 +87,30 @@ class Substance(typing.NamedTuple):
 	name: str
 	vendor: str
 	prescribed: bool
+	notices: str
 
 	def to_dict(self) -> dict[str, typing.Any]:
 		return {
 			"id": self.id,
 			"name": self.name,
 			"vendor": self.vendor,
-			"prescribed": self.prescribed
+			"prescribed": self.prescribed,
+			"notices": self.notices
 		}
 
 class SubstanceModel(Model):
-	def create_substance(self, name: str, vendor: str, prescribed: bool) -> str:
+	def create_substance(self, name: str, vendor: str, prescribed: bool, notices: str )-> str:
 		self.database.cursor.execute(
-			"INSERT INTO substances (name, vendor, prescribed) VALUES (%s, %s, %s) RETURNING id;",
-			(name, vendor, prescribed)
+			"""
+INSERT INTO substances (name, vendor, prescribed, notices) VALUES (%s, %s, %s, %s) RETURNING id;""",
+			(name, vendor, prescribed, notices)
 		)
 
 		return self.database.cursor.fetchone()[0]
 
 	def substance(self, substance_id: str) -> typing.Optional[Substance]:
 		self.database.cursor.execute(
-			"SELECT id, name, vendor, prescribed FROM substances WHERE id = %s;",
+			"SELECT id, name, vendor, prescribed, notices FROM substances WHERE id = %s;",
 			(substance_id,)
 		)
 
@@ -116,7 +120,7 @@ class SubstanceModel(Model):
 			return Substance(*row)
 
 	def substances(self) -> list[Substance]:
-		self.database.cursor.execute("SELECT id, name, vendor, prescribed FROM substances;")
+		self.database.cursor.execute("SELECT id, name, vendor, prescribed, notices FROM substances;")
 
 		return [Substance(*row) for row in self.database.cursor.fetchall()]
 
