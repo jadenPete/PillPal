@@ -16,7 +16,7 @@ class Database:
 		self.cursor.execute(
 			"""
 CREATE TABLE IF NOT EXISTS substances(
-	id UUID PRIMARY KEY,
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	name TEXT NOT NULL,
 	vendor TEXT,
 	prescribed BOOLEAN NOT NULL
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS substances(
 		self.cursor.execute(
 			"""
 CREATE TABLE IF NOT EXISTS medication(
-	id UUID PRIMARY KEY,
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	substance_id UUID NOT NULL REFERENCES substances(id),
 	dosage_form SMALLINT NOT NULL,
 	unit_mg INTEGER NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS medication(
 		self.cursor.execute(
 			"""
 CREATE TABLE IF NOT EXISTS prescriptions(
-	id UUID PRIMARY KEY,
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	medication_id UUID NOT NULL REFERENCES medication(id),
 	quantity INTEGER NOT NULL,
 	doctor_name TEXT NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS prescriptions(
 		self.cursor.execute(
 			"""
 CREATE TABLE IF NOT EXISTS inventory(
-	id UUID PRIMARY KEY,
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	medication_id UUID NOT NULL REFERENCES medication(id),
 	quantity INTEGER NOT NULL,
 	timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -87,7 +87,7 @@ class Substance(typing.NamedTuple):
 class SubstanceModel(Model):
 	def create_substance(self, name: str, vendor: str, prescribed: bool) -> None:
 		self.database.cursor.execute(
-			"INSERT INTO substances (name, vendor, prescribed) VALUES (?, ?, ?);",
+			"INSERT INTO substances (name, vendor, prescribed) VALUES (%s, %s, %s);",
 			(name, vendor, prescribed)
 		)
 
@@ -129,7 +129,7 @@ class MedicationModel(Model):
 			"""
 INSERT INTO medication
 	(substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype)
-	VALUES (?, ?, ?, ?, ?, ?, ?);""",
+	VALUES (%s, %s, %s, %s, %s, %s, %s);""",
 			(
 				substance_id,
 				dosage_form.value,
@@ -153,15 +153,15 @@ SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image
 			for row in self.database.cursor.fetchall()
 		]
 
-	def medication_single(self) -> Medication:
+	def medication_single(self, medication_id: str) -> Medication:
 		self.database.cursor.execute(
 			"""
 SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype
 	FROM medication
- 	WHERE id = ?;"""
+ 	WHERE id = %s;""", (medication_id,)
 		)
-
-		return Medication(*self.database.cursor.fetchone())
+		row = self.database.cursor.fetchone()  
+		return None if row is None else Medication(*row)
 
 class Prescription(typing.NamedTuple):
 	id: str
@@ -184,19 +184,19 @@ class PrescriptionModel(Model):
 			"""
 INSERT INTO prescription
 	(medication_id, quantity, doctor_name, patient_name, instructions)
-	VALUES (?, ?, ?, ?, ?);""",
+	VALUES (%s, %s, %s, %s, %s);""",
 			(medication_id, quantity, doctor_name, patient_name, instructions)
 		)
 
 	def prescriptions_for_medication(self, medication_id: str) -> list[Prescription]:
 		self.database.cursor.execute(
 			"""
-SELECT (id, medication_id, quantity, doctor_name, patient_name, instructions)
+SELECT id, medication_id, quantity, doctor_name, patient_name, instructions
 	FROM prescriptions
-	WHERE medication_id = ?;", (medication_id,);""",
+	WHERE medication_id = %s;""",
 			(medication_id,)
 		)
-
+  
 		return [Prescription(*row) for row in self.database.cursor.fetchall()]
 
 class Inventory(typing.NamedTuple):
@@ -208,13 +208,13 @@ class Inventory(typing.NamedTuple):
 class InventoryModel(Model):
 	def add_inventory(self, medication_id: str, quantity: int) -> None:
 		self.database.cursor.execute(
-			"INSERT INTO inventory (medication_id, quantity) VALUES (?, ?);",
+			"INSERT INTO inventory (medication_id, quantity) VALUES (%s, %s);",
 			(medication_id, quantity)
 		)
 
 	def inventory_for_medication(self, medication_id: str) -> list[Inventory]:
 		self.database.cursor.execute(
-			"SELECT id, medication_id, quantity, timestamp FROM inventory WHERE medication_id = ?;",
+			"SELECT id, medication_id, quantity, timestamp FROM inventory WHERE medication_id = %s;",
 			(medication_id,)
 		)
 
