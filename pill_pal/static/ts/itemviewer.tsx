@@ -3,14 +3,18 @@ import * as ReactDOMClient from "react-dom/client"
 
 function App() {
 
+  // Variable of the ID from the url 
   const MEDICATION_ID = window.location.pathname.split("/")[2];
 
+  // Drug name var, get from fetch
   const DRUG_NAME =`Drug Name (current id: ${MEDICATION_ID})`;
+  // Drug desc var, get from fetch
   const DRUG_DESC = "Drug Description.....";
+  // Drug stock var, get from fetch
   const DRUG_STOCK = "Drug Stock";
+  // Drug pic var, get from fetch
   const DRUG_PIC = "https://assets.bwbx.io/images/users/iqjWHBFdfxIU/iarrvNQy.B8w/v1/-1x-1.jpg";
-
-
+  
   return (
     <div className="row" id="shift">
       <div className="col-8">
@@ -28,7 +32,20 @@ function App() {
               </tr>
             </thead>
             <tbody>
-              {/** map each part of json to tr*/}
+              {/** map each part of json to tr
+               * 
+               * FORMAT:
+               * 
+               * for each prescription:
+               * <tr>
+               *    <td className="col-md-1">*data*</td>
+               *    <td className="col-md-2">*data2*</td>
+               *    <td className="col-md-3">*data3*</td>
+               *    etc
+               * </tr>
+               * 
+              */}
+
             </tbody>
           </table>
         </div>
@@ -47,6 +64,14 @@ function App() {
               <tr>
                 <td className="col-md-1">{DRUG_STOCK}</td>
               </tr>
+              {/**
+               * TO ADD MORE GENERAL DRUG DATA:
+               * 
+               * <tr>
+               *  <td className="col-md-1">data</td>
+               * </tr>
+               * for each new paragraph
+               */}
             </tbody>
           </table>
         </div>
