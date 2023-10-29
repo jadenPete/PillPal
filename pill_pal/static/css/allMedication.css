@@ -1,3 +1,7 @@
 .medication-card {
 	width: 16rem;
 }
+
+.medication-id {
+	font-size: 0.675rem;
+}
