@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import collections
+import datetime
 import flask
-from pill_pal.db import Database
+import filetype
+from pill_pal.db import Database, DosageForm
 
 app = flask.Flask(__name__)
 
@@ -14,7 +16,7 @@ def get_db() -> Database:
 
 @app.route("/")
 def index():
-  return flask.redirect(flask.url_for("all_medication"))
+    return flask.redirect(flask.url_for("all_medication"))
 
 @app.route("/medication")
 def all_medication():
@@ -22,17 +24,37 @@ def all_medication():
 
 @app.route("/medication/<medication_id>")
 def single_medication(medication_id):
-  return flask.render_template("single_medication.html")
+    if get_db().medication().medication_single(medication_id) is None:
+        return flask.Response(status=404)
+
+    return flask.render_template("single_medication.html")
 
 @app.route("/prescription/create")
 def create_prescription():
-	pass
+	return flask.render_template("create_prescription.html")
 
 @app.route("/api/medication")
 def api_all_medication():
     return flask.jsonify(
 		[medication.to_dict(get_db()) for medication in get_db().medication().medication_all()]
     )
+
+@app.post("/api/medication")
+def api_create_medication():
+    # TODO: Add server-side validation
+
+    image = flask.request.files["image"].stream.read()
+    medication_id = get_db().medication().create_medication(
+        flask.request.form["substanceID"],
+        DosageForm.from_name(flask.request.form["dosageForm"]),
+        flask.request.form["unitMg"],
+        flask.request.form["centsPerUnit"],
+        datetime.datetime.fromisoformat(flask.request.form["expiration"]) - datetime.datetime.now(),
+        image,
+        filetype.guess(image).mime,
+    )
+
+    return flask.jsonify(medication_id)
 
 @app.route("/api/medication/<medication_id>")
 def api_medication_single(medication_id: str):
@@ -91,3 +113,29 @@ def api_medication_search():
 			)
 
 	return flask.jsonify(result)
+
+@app.post("/api/prescription")
+def api_create_prescription():
+    # TODO: Add server-side validation
+
+    get_db().prescriptions().create_prescription(
+         flask.request.form["medicationID"],
+         int(flask.request.form["quantity"]),
+         flask.request.form["doctorName"],
+         flask.request.form["patientName"],
+         flask.request.form["instructions"]
+    )
+
+    return flask.Response(status=200)
+
+@app.post("/api/substance")
+def api_create_substance():
+    # TODO: Add server-side validation
+
+    substance_id = get_db().substances().create_substance(
+        flask.request.form["name"],
+        flask.request.form["vendor"],
+        flask.request.form.get("prescribed") == "on",
+    )
+
+    return flask.jsonify(substance_id)

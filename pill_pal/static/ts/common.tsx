@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 export enum DosageForm {
 	Tablet = "tablet",
@@ -35,18 +35,20 @@ export interface Substance {
 	prescribed: boolean
 }
 
+export function capitalizeDosageForm(dosageForm: DosageForm) {
+	return `${dosageForm.charAt(0).toUpperCase()}${dosageForm.slice(1)}`;
+}
+
 export function MedicationInformation(props: {
 	medication: Medication
 }) {
-	const dosageForm = props.medication.dosageForm;
-
 	return <div>
 		<div>
 			<strong>Brand name(s)</strong>: {props.medication.substance.vendor}
 		</div>
 
 		<div>
-			<strong>Dosage form</strong>: {`${dosageForm.charAt(0).toUpperCase()}${dosageForm.slice(1)}`}
+			<strong>Dosage form</strong>: {`${capitalizeDosageForm(props.medication.dosageForm)}`}
 		</div>
 
 		<div>
@@ -57,4 +59,36 @@ export function MedicationInformation(props: {
 			<strong>Price/unit</strong>: {props.medication.centsPerUnit}¢
 		</div>
 	</div>;
+}
+
+export function useSearchedMedications(): [
+	Medication[],
+	Medication[],
+	(searchQuery: string) => void
+] {
+	const [allMedications, setAllMedications] = useState<Medication[]>([]);
+	const [currentMedications, setCurrentMedications] = useState<Medication[]>([]);
+
+	function updateSearchQuery(query: string) {
+		if (query == "") {
+			setCurrentMedications(allMedications);
+		} else {
+			fetch(`/api/medication/search?query=${query}`)
+				.then(response => response.json())
+				.then(medications => {
+					setCurrentMedications(medications)
+				});
+		}
+	}
+
+	useEffect(() => {
+		fetch("/api/medication")
+			.then(response => response.json())
+			.then(medications => {
+				setAllMedications(medications);
+				setCurrentMedications(medications);
+			});
+	}, []);
+
+	return [allMedications, currentMedications, updateSearchQuery];
 }

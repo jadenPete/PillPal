@@ -96,11 +96,13 @@ class Substance(typing.NamedTuple):
 		}
 
 class SubstanceModel(Model):
-	def create_substance(self, name: str, vendor: str, prescribed: bool) -> None:
+	def create_substance(self, name: str, vendor: str, prescribed: bool) -> str:
 		self.database.cursor.execute(
-			"INSERT INTO substances (name, vendor, prescribed) VALUES (%s, %s, %s);",
+			"INSERT INTO substances (name, vendor, prescribed) VALUES (%s, %s, %s) RETURNING id;",
 			(name, vendor, prescribed)
 		)
+
+		return self.database.cursor.fetchone()[0]
 
 	def substance(self, substance_id: str) -> typing.Optional[Substance]:
 		self.database.cursor.execute(
@@ -137,6 +139,17 @@ class DosageForm(enum.IntEnum):
 			self.__class__.TOPICAL: "topical"
 		}[self]
 
+	@classmethod
+	def from_name(cls, name: str) -> 'DosageForm':
+		return {
+			"tablet": cls.TABLET,
+			"capsule": cls.CAPSULE,
+			"syrup": cls.SYRUP,
+			"suspension": cls.SUSPENSION,
+			"injection": cls.INJECTION,
+			"topical": cls.TOPICAL
+		}[name]
+
 class Medication(typing.NamedTuple):
 	id: str
 	substance_id: str
@@ -159,27 +172,26 @@ class Medication(typing.NamedTuple):
 		}
 
 class MedicationModel(Model):
-    def read_image_file(self, filename: str) -> bytes:
-        with open(os.path.join('static', 'img', filename), 'rb') as f:
-            return f.read()
-    
-    def create_medication(
+	def read_image_file(self, filename: str) -> bytes:
+		with open(os.path.join('static', 'img', filename), 'rb') as f:
+			return f.read()
+
+	def create_medication(
 		self,
 		substance_id: str,
 		dosage_form: DosageForm,
 		unit_mg: int,
 		cents_per_unit: int,
 		shelf_life: datetime.timedelta,
-		image_file: str,
+		image: str,
 		image_mimetype: str,
-	) -> None:
-        
-        image = self.read_image_file(image_file)
-        self.database.cursor.execute(
+	) -> str:
+		self.database.cursor.execute(
 			"""
 INSERT INTO medication
 	(substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype)
-	VALUES (%s, %s, %s, %s, %s, %s, %s);""",
+	VALUES (%s, %s, %s, %s, %s, %s, %s)
+	RETURNING id;""",
 			(
 				substance_id,
 				dosage_form.value,
@@ -190,32 +202,34 @@ INSERT INTO medication
 				image_mimetype
 			)
 		)
-        
-    def medication_all(self) -> list[Medication]:
-        self.database.cursor.execute(
+
+		return self.database.cursor.fetchone()[0]
+
+	def medication_all(self) -> list[Medication]:
+		self.database.cursor.execute(
 			"""
 SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype
 	FROM medication;"""
 		)
-        
-        return [
+
+		return [
 			Medication(*row[:2], DosageForm(row[2]), *row[3:])
 			for row in self.database.cursor.fetchall()
 		]
-        
-    def medication_single(self, medication_id: str) -> typing.Optional[Medication]:
-        self.database.cursor.execute(
+
+	def medication_single(self, medication_id: str) -> typing.Optional[Medication]:
+		self.database.cursor.execute(
 			"""
 SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype
 	FROM medication
  	WHERE id = %s;""",
 	 		(medication_id,)
 		)
-        
-        row = self.database.cursor.fetchone()
-        
-        if row is not None:
-            return Medication(*row[:2], DosageForm(row[2]), *row[3:])
+
+		row = self.database.cursor.fetchone()
+
+		if row is not None:
+			return Medication(*row[:2], DosageForm(row[2]), *row[3:])
 
 class Prescription(typing.NamedTuple):
 	id: str
@@ -246,7 +260,7 @@ class PrescriptionModel(Model):
 	) -> None:
 		self.database.cursor.execute(
 			"""
-INSERT INTO prescription
+INSERT INTO prescriptions
 	(medication_id, quantity, doctor_name, patient_name, instructions)
 	VALUES (%s, %s, %s, %s, %s);""",
 			(medication_id, quantity, doctor_name, patient_name, instructions)

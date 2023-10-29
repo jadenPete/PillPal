@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react"
-import * as ReactDOMClient from "react-dom/client"
-import { Medication, MedicationInformation, Prescription } from "./common"
+import React, { useEffect, useState } from "react";
+import * as ReactDOMClient from "react-dom/client";
+import { Medication, MedicationInformation, Prescription } from "./common";
 
 function App() {
 	const medicationID = window.location.pathname.split("/")[2];
