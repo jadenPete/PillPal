@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import collections
 import flask
 from pill_pal.db import Database
 
@@ -69,3 +70,21 @@ def api_medication_quantity(medication_id: str):
         flask.abort(404)
     quantity = sum(item.quantity for item in inventory_list)
     return flask.jsonify(quantity)
+
+@app.route("/api/search/<name>")
+def get_medication_by_meds(name):
+	name = name.lower()
+	all_substances = get_db().substances().substances()
+	all_medications = get_db().medication().medication_all()
+	result = []
+
+	substance_medications = collections.defaultdict(list)
+
+	for medication in all_medications:
+		substance_medications[medication.substance_id].append(medication)
+
+	for substance in all_substances:
+		if name in substance.name.lower():
+			result.extend(substance_medications[substance.id])
+
+	return flask.jsonify(result)
