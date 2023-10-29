@@ -208,7 +208,7 @@ SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image
 		row = self.database.cursor.fetchone()
 
 		if row is not None:
-			return Medication(*row)
+			return Medication(*row[:2], DosageForm(row[2]), *row[3:])
 
 class Prescription(typing.NamedTuple):
 	id: str
@@ -217,6 +217,16 @@ class Prescription(typing.NamedTuple):
 	doctor_name: str
 	patient_name: str
 	instructions: str
+
+	def to_dict(self) -> dict[str, typing.Any]:
+		return {
+			"id": self.id,
+			"medicationID": self.medication_id,
+			"quantity": self.quantity,
+			"doctorName": self.doctor_name,
+			"patientName": self.patient_name,
+			"instructions": self.instructions
+		}
 
 class PrescriptionModel(Model):
 	def create_prescription(
