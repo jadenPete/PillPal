@@ -1,3 +1,5 @@
+import React from "react";
+
 export enum DosageForm {
 	Tablet = "tablet",
 	Capsule = "capsule",
@@ -31,4 +33,28 @@ export interface Substance {
 	name: string
 	vendor: string
 	prescribed: boolean
+}
+
+export function MedicationInformation(props: {
+	medication: Medication
+}) {
+	const dosageForm = props.medication.dosageForm;
+
+	return <div>
+		<div>
+			<strong>Vendor</strong>: {props.medication.substance.vendor}
+		</div>
+
+		<div>
+			<strong>Dosage form</strong>: {`${dosageForm.charAt(0).toUpperCase()}${dosageForm.slice(1)}`}
+		</div>
+
+		<div>
+			<strong>Unit mass</strong>: {props.medication.unitMg} mg
+		</div>
+
+		<div>
+			<strong>Price/unit</strong>: {props.medication.centsPerUnit}¢
+		</div>
+	</div>;
 }

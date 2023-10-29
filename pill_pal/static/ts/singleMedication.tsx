@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
 import * as ReactDOMClient from "react-dom/client"
-import { Medication, Prescription } from "./common"
+import { Medication, MedicationInformation, Prescription } from "./common"
 
 function App() {
 	const medicationID = window.location.pathname.split("/")[2];
@@ -40,20 +40,9 @@ function MedicationPanel(props: {
 
 	return <div>
 		<h2 className="sub-header">{medication.substance.name}</h2>
-		<div className="table-responsive">
-			<table className="table table-borderless">
-				<tbody>
-					<tr>
-						<td className="col-lg-4">
-							<img id="pic" src={medication.imageURL}/>
-						</td>
-					</tr>
-
-					<tr>
-						<td className="col-md-1">{medicationQuantity}</td>
-					</tr>
-				</tbody>
-			</table>
+		<div className="fs-5">
+			<img id="pic" className="mb-3" src={medication.imageURL}/>
+			<MedicationInformation medication={medication}/>
 		</div>
 	</div>;
 }

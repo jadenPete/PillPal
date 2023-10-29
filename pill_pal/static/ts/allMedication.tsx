@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
 import * as ReactDOMClient from "react-dom/client"
-import { Medication } from "./common";
+import { Medication, MedicationInformation } from "./common";
 
 function App() {
 	return <div className="container-fluid justify-content-center gx-5 mb-5">
@@ -17,8 +17,6 @@ function App() {
 function MedicationCard(props: {
 	medication: Medication
 }) {
-	const dosageForm = props.medication.dosageForm;
-
 	return <a
 		className="medication-card card bg-body-secondary border-0 shadow-2 text-decoration-none"
 		href={`/medication/${props.medication.id}`}>
@@ -30,21 +28,7 @@ function MedicationCard(props: {
 			</h5>
 
 			<div className="card-text">
-				<div>
-					<strong>Vendor</strong>: {props.medication.substance.vendor}
-				</div>
-
-				<div>
-					<strong>Dosage form</strong>: {`${dosageForm.charAt(0).toUpperCase()}${dosageForm.slice(1)}`}
-				</div>
-
-				<div>
-					<strong>Unit mass</strong>: {props.medication.unitMg} mg
-				</div>
-
-				<div>
-					<strong>Price/unit</strong>: {props.medication.centsPerUnit}¢
-				</div>
+				<MedicationInformation medication={props.medication}/>
 			</div>
 		</div>
 	</a>;
