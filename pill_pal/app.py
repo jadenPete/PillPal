@@ -13,11 +13,22 @@ def get_db():
 
 @app.route("/")
 def index():
-	get_db()
+	return flask.redirect(flask.url_for("all_medication"))
 
-	return flask.render_template("index.html")
+@app.route("/medication")
+def all_medication():
+	return flask.render_template("all_medication.html")
 
 @app.route("/medication/<id>")
+def single_medication(medication_id):
+	pass
+
+@app.route("/prescription/create")
+def create_prescription():
+	pass
+
+
+@app.route("/api/medication/<id>")
 def item(id):
     db = get_db()
     medication = db.medication.medication_single(id)
@@ -25,7 +36,7 @@ def item(id):
         flask.abort(404)
     return jsonify(medication)
 
-@app.route("/medication/<id>/prescriptions")
+@app.route("/api/medication/<id>/prescriptions")
 def view_med_prescriptions(id):
     db = get_db()
     prescriptions = db.prescription().prescriptions_for_medication(id)
@@ -33,7 +44,7 @@ def view_med_prescriptions(id):
         flask.abort(404)
     return jsonify(prescriptions)
 
-@app.route("/medication/<id>/quantity")
+@app.route("/api/medication/<id>/quantity")
 def get_med_quantity(id):
     db = get_db()
     inventory_list = db.inventory().inventory_for_medication(id)
