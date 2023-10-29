@@ -1,5 +1,7 @@
 import datetime
 import enum
+import flask
+import humanize
 from pill_pal.config import get_config
 import psycopg
 import psycopg.rows
@@ -84,12 +86,31 @@ class Substance(typing.NamedTuple):
 	vendor: str
 	prescribed: bool
 
+	def to_dict(self) -> dict[str, typing.Any]:
+		return {
+			"id": self.id,
+			"name": self.name,
+			"vendor": self.vendor,
+			"prescribed": self.prescribed
+		}
+
 class SubstanceModel(Model):
 	def create_substance(self, name: str, vendor: str, prescribed: bool) -> None:
 		self.database.cursor.execute(
 			"INSERT INTO substances (name, vendor, prescribed) VALUES (%s, %s, %s);",
 			(name, vendor, prescribed)
 		)
+
+	def substance(self, substance_id: str) -> typing.Optional[Substance]:
+		self.database.cursor.execute(
+			"SELECT id, name, vendor, prescribed FROM substances WHERE id = %s;",
+			(substance_id,)
+		)
+
+		row = self.database.cursor.fetchone()
+
+		if row is not None:
+			return Substance(*row)
 
 	def substances(self) -> list[Substance]:
 		self.database.cursor.execute("SELECT id, name, vendor, prescribed FROM substances;")
@@ -104,6 +125,17 @@ class DosageForm(enum.IntEnum):
 	INJECTION = 5
 	TOPICAL = 6
 
+	@property
+	def name(self) -> str:
+		return {
+			self.__class__.TABLET: "tablet",
+			self.__class__.CAPSULE: "capsule",
+			self.__class__.SYRUP: "syrup",
+			self.__class__.SUSPENSION: "suspension",
+			self.__class__.INJECTION: "injection",
+			self.__class__.TOPICAL: "topical"
+		}[self]
+
 class Medication(typing.NamedTuple):
 	id: str
 	substance_id: str
@@ -113,6 +145,17 @@ class Medication(typing.NamedTuple):
 	shelf_life: datetime.timedelta
 	image: bytes
 	image_mimetype: str
+
+	def to_dict(self, database: Database) -> dict[str, typing.Any]:
+		return {
+			"id": self.id,
+			"substance": database.substances().substance(self.substance_id).to_dict(),
+			"dosageForm": self.dosage_form.name,
+			"unitMg": self.unit_mg,
+			"centsPerUnit": self.cents_per_unit,
+			"shelfLife": humanize.naturaldelta(self.shelf_life),
+			"imageURL": flask.url_for('api_medication_image', medication_id=self.id)
+		}
 
 class MedicationModel(Model):
 	def create_medication(
@@ -149,19 +192,23 @@ SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image
 		)
 
 		return [
-			Substance(*row[:2], DosageForm(row[2]), *row[3:])
+			Medication(*row[:2], DosageForm(row[2]), *row[3:])
 			for row in self.database.cursor.fetchall()
 		]
 
-	def medication_single(self, medication_id: str) -> Medication:
+	def medication_single(self, medication_id: str) -> typing.Optional[Medication]:
 		self.database.cursor.execute(
 			"""
 SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype
 	FROM medication
- 	WHERE id = %s;""", (medication_id,)
+ 	WHERE id = %s;""",
+	 		(medication_id,)
 		)
-		row = self.database.cursor.fetchone()  
-		return None if row is None else Medication(*row)
+
+		row = self.database.cursor.fetchone()
+
+		if row is not None:
+			return Medication(*row)
 
 class Prescription(typing.NamedTuple):
 	id: str
@@ -196,7 +243,7 @@ SELECT id, medication_id, quantity, doctor_name, patient_name, instructions
 	WHERE medication_id = %s;""",
 			(medication_id,)
 		)
-  
+
 		return [Prescription(*row) for row in self.database.cursor.fetchall()]
 
 class Inventory(typing.NamedTuple):
