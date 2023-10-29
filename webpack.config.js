@@ -3,7 +3,7 @@ const path = require("path");
 module.exports = {
 	entry: {
 		allMedication: "./pill_pal/static/ts/allMedication.tsx",
-		itemviewer: "./pill_pal/static/ts/itemviewer.tsx"
+		singleMedication: "./pill_pal/static/ts/singleMedication.tsx"
 	},
 
 	externals: {

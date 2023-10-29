@@ -21,7 +21,7 @@ def all_medication():
 
 @app.route("/medication/<id>")
 def single_medication(id):
-  return flask.render_template("itemviewer.html")
+  return flask.render_template("single_medication.html")
 
 @app.route("/prescription/create")
 def create_prescription():
