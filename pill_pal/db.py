@@ -66,8 +66,8 @@ CREATE TABLE IF NOT EXISTS inventory(
 	def medication(self) -> 'MedicationModel':
 		return MedicationModel(self)
 
-	def prescriptions(self) -> 'PerscriptionModel':
-		return PerscriptionModel(self)
+	def prescriptions(self) -> 'PrescriptionModel':
+		return PrescriptionModel(self)
 
 	def inventory(self) -> 'InventoryModel':
 		return InventoryModel(self)
@@ -152,7 +152,7 @@ SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image
 			Substance(*row[:2], DosageForm(row[2]), *row[3:])
 			for row in self.database.cursor.fetchall()
 		]
-  
+
 	def medication_single(self) -> Medication:
 		self.database.cursor.execute(
 			"""
@@ -163,7 +163,7 @@ SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image
 
 		return Medication(*self.database.cursor.fetchone())
 
-class Perscription(typing.NamedTuple):
+class Prescription(typing.NamedTuple):
 	id: str
 	medication_id: str
 	quantity: int
@@ -171,7 +171,7 @@ class Perscription(typing.NamedTuple):
 	patient_name: str
 	instructions: str
 
-class PerscriptionModel(Model):
+class PrescriptionModel(Model):
 	def create_prescription(
 		self,
 		medication_id: str,
@@ -188,7 +188,7 @@ INSERT INTO prescription
 			(medication_id, quantity, doctor_name, patient_name, instructions)
 		)
 
-	def prescriptions_for_medication(self, medication_id: str) -> list[Perscription]:
+	def prescriptions_for_medication(self, medication_id: str) -> list[Prescription]:
 		self.database.cursor.execute(
 			"""
 SELECT (id, medication_id, quantity, doctor_name, patient_name, instructions)
@@ -197,7 +197,7 @@ SELECT (id, medication_id, quantity, doctor_name, patient_name, instructions)
 			(medication_id,)
 		)
 
-		return [Perscription(*row) for row in self.database.cursor.fetchall()]
+		return [Prescription(*row) for row in self.database.cursor.fetchall()]
 
 class Inventory(typing.NamedTuple):
 	id: str

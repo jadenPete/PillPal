@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import flask import Flask, jsonify
+import flask
 from pill_pal.db import Database
 
 app = flask.Flask(__name__)
@@ -34,7 +34,7 @@ def item(id):
     medication = db.medication.medication_single(id)
     if medication is None:
         flask.abort(404)
-    return jsonify(medication)
+    return flask.jsonify(medication)
 
 @app.route("/api/medication/<id>/prescriptions")
 def view_med_prescriptions(id):
@@ -42,7 +42,7 @@ def view_med_prescriptions(id):
     prescriptions = db.prescription().prescriptions_for_medication(id)
     if prescriptions is None:
         flask.abort(404)
-    return jsonify(prescriptions)
+    return flask.jsonify(prescriptions)
 
 @app.route("/api/medication/<id>/quantity")
 def get_med_quantity(id):
@@ -51,4 +51,4 @@ def get_med_quantity(id):
     if inventory_list is None:
         flask.abort(404)
     quantity = sum(item.quantity for item in inventory_list)
-    return jsonify(quantity)
+    return flask.jsonify(quantity)
