@@ -1,0 +1,28 @@
+/**
+ Constricts the right image to fit the screen.
+*/
+#pic {
+  width:95% !important;
+  height:auto !important;
+}
+
+/**
+ Constricts the width of the left table to a certain height, any excess must be scrolled through.
+*/
+#scroller {
+  overflow:scroll;
+  overflow-x:hidden;
+  max-height:90vh;
+}
+
+/**
+ Basic shift of the left table from the edge of the screen.
+*/
+#shift {
+  margin-left:15px !important;
+}
+
+
+body {
+  overflow-x: hidden !important;
+}
