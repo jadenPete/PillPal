@@ -42,7 +42,7 @@ export function MedicationInformation(props: {
 
 	return <div>
 		<div>
-			<strong>Vendor</strong>: {props.medication.substance.vendor}
+			<strong>Brand name(s)</strong>: {props.medication.substance.vendor}
 		</div>
 
 		<div>
