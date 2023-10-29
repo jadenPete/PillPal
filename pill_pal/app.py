@@ -5,7 +5,7 @@ from pill_pal.db import Database
 
 app = flask.Flask(__name__)
 
-def get_db():
+def get_db() -> Database:
 	if "db" not in flask.g:
 		flask.g.db = Database()
 
@@ -27,27 +27,44 @@ def single_medication(id):
 def create_prescription():
 	pass
 
+@app.route("/api/medication")
+def api_all_medication():
+    return flask.jsonify(
+		[medication.to_dict(get_db()) for medication in get_db().medication().medication_all()]
+    )
 
-@app.route("/api/medication/<id>")
-def item(id):
-    db = get_db()
-    medication = db.medication.medication_single(id)
+@app.route("/api/medication/<medication_id>")
+def api_medication_single(medication_id: str):
+    medication = get_db().medication().medication_single(medication_id)
+
     if medication is None:
-        flask.abort(404)
-    return flask.jsonify(medication)
+        return flask.Response(status=404)
 
-@app.route("/api/medication/<id>/prescriptions")
-def view_med_prescriptions(id):
+    return flask.jsonify(medication.to_dict())
+
+@app.route("/api/medication/<medication_id>/image")
+def api_medication_image(medication_id: str):
+    medication = get_db().medication().medication_single(medication_id)
+
+    if medication is None:
+        return flask.Response(status=404)
+
+    return medication.image, 200, {
+        "Content-Type": medication.image_mimetype
+    }
+
+@app.route("/api/medication/<medication_id>/prescriptions")
+def api_medication_prescriptions(medication_id: str):
     db = get_db()
-    prescriptions = db.prescription().prescriptions_for_medication(id)
+    prescriptions = db.prescription().prescriptions_for_medication(medication_id)
     if prescriptions is None:
         flask.abort(404)
     return flask.jsonify(prescriptions)
 
-@app.route("/api/medication/<id>/quantity")
-def get_med_quantity(id):
+@app.route("/api/medication/<medication_id>/quantity")
+def api_medication_quantity(medication_id: str):
     db = get_db()
-    inventory_list = db.inventory().inventory_for_medication(id)
+    inventory_list = db.inventory().inventory_for_medication(medication_id)
     if inventory_list is None:
         flask.abort(404)
     quantity = sum(item.quantity for item in inventory_list)

@@ -1,5 +1,7 @@
 import datetime
 import enum
+import flask
+import humanize
 from pill_pal.config import get_config
 import psycopg
 import psycopg.rows
@@ -16,7 +18,7 @@ class Database:
 		self.cursor.execute(
 			"""
 CREATE TABLE IF NOT EXISTS substances(
-	id UUID PRIMARY KEY,
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	name TEXT NOT NULL,
 	vendor TEXT,
 	prescribed BOOLEAN NOT NULL
@@ -26,7 +28,7 @@ CREATE TABLE IF NOT EXISTS substances(
 		self.cursor.execute(
 			"""
 CREATE TABLE IF NOT EXISTS medication(
-	id UUID PRIMARY KEY,
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	substance_id UUID NOT NULL REFERENCES substances(id),
 	dosage_form SMALLINT NOT NULL,
 	unit_mg INTEGER NOT NULL,
@@ -41,7 +43,7 @@ CREATE TABLE IF NOT EXISTS medication(
 		self.cursor.execute(
 			"""
 CREATE TABLE IF NOT EXISTS prescriptions(
-	id UUID PRIMARY KEY,
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	medication_id UUID NOT NULL REFERENCES medication(id),
 	quantity INTEGER NOT NULL,
 	doctor_name TEXT NOT NULL,
@@ -53,7 +55,7 @@ CREATE TABLE IF NOT EXISTS prescriptions(
 		self.cursor.execute(
 			"""
 CREATE TABLE IF NOT EXISTS inventory(
-	id UUID PRIMARY KEY,
+	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	medication_id UUID NOT NULL REFERENCES medication(id),
 	quantity INTEGER NOT NULL,
 	timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -84,12 +86,31 @@ class Substance(typing.NamedTuple):
 	vendor: str
 	prescribed: bool
 
+	def to_dict(self) -> dict[str, typing.Any]:
+		return {
+			"id": self.id,
+			"name": self.name,
+			"vendor": self.vendor,
+			"prescribed": self.prescribed
+		}
+
 class SubstanceModel(Model):
 	def create_substance(self, name: str, vendor: str, prescribed: bool) -> None:
 		self.database.cursor.execute(
-			"INSERT INTO substances (name, vendor, prescribed) VALUES (?, ?, ?);",
+			"INSERT INTO substances (name, vendor, prescribed) VALUES (%s, %s, %s);",
 			(name, vendor, prescribed)
 		)
+
+	def substance(self, substance_id: str) -> typing.Optional[Substance]:
+		self.database.cursor.execute(
+			"SELECT id, name, vendor, prescribed FROM substances WHERE id = %s;",
+			(substance_id,)
+		)
+
+		row = self.database.cursor.fetchone()
+
+		if row is not None:
+			return Substance(*row)
 
 	def substances(self) -> list[Substance]:
 		self.database.cursor.execute("SELECT id, name, vendor, prescribed FROM substances;")
@@ -104,6 +125,17 @@ class DosageForm(enum.IntEnum):
 	INJECTION = 5
 	TOPICAL = 6
 
+	@property
+	def name(self) -> str:
+		return {
+			self.__class__.TABLET: "tablet",
+			self.__class__.CAPSULE: "capsule",
+			self.__class__.SYRUP: "syrup",
+			self.__class__.SUSPENSION: "suspension",
+			self.__class__.INJECTION: "injection",
+			self.__class__.TOPICAL: "topical"
+		}[self]
+
 class Medication(typing.NamedTuple):
 	id: str
 	substance_id: str
@@ -113,6 +145,17 @@ class Medication(typing.NamedTuple):
 	shelf_life: datetime.timedelta
 	image: bytes
 	image_mimetype: str
+
+	def to_dict(self, database: Database) -> dict[str, typing.Any]:
+		return {
+			"id": self.id,
+			"substance": database.substances().substance(self.substance_id).to_dict(),
+			"dosageForm": self.dosage_form.name,
+			"unitMg": self.unit_mg,
+			"centsPerUnit": self.cents_per_unit,
+			"shelfLife": humanize.naturaldelta(self.shelf_life),
+			"imageURL": flask.url_for('api_medication_image', medication_id=self.id)
+		}
 
 class MedicationModel(Model):
 	def create_medication(
@@ -129,7 +172,7 @@ class MedicationModel(Model):
 			"""
 INSERT INTO medication
 	(substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype)
-	VALUES (?, ?, ?, ?, ?, ?, ?);""",
+	VALUES (%s, %s, %s, %s, %s, %s, %s);""",
 			(
 				substance_id,
 				dosage_form.value,
@@ -149,19 +192,23 @@ SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image
 		)
 
 		return [
-			Substance(*row[:2], DosageForm(row[2]), *row[3:])
+			Medication(*row[:2], DosageForm(row[2]), *row[3:])
 			for row in self.database.cursor.fetchall()
 		]
 
-	def medication_single(self) -> Medication:
+	def medication_single(self, medication_id: str) -> typing.Optional[Medication]:
 		self.database.cursor.execute(
 			"""
 SELECT id, substance_id, dosage_form, unit_mg, cents_per_unit, shelf_life, image, image_mimetype
 	FROM medication
- 	WHERE id = ?;"""
+ 	WHERE id = %s;""",
+	 		(medication_id,)
 		)
 
-		return Medication(*self.database.cursor.fetchone())
+		row = self.database.cursor.fetchone()
+
+		if row is not None:
+			return Medication(*row)
 
 class Prescription(typing.NamedTuple):
 	id: str
@@ -184,16 +231,16 @@ class PrescriptionModel(Model):
 			"""
 INSERT INTO prescription
 	(medication_id, quantity, doctor_name, patient_name, instructions)
-	VALUES (?, ?, ?, ?, ?);""",
+	VALUES (%s, %s, %s, %s, %s);""",
 			(medication_id, quantity, doctor_name, patient_name, instructions)
 		)
 
 	def prescriptions_for_medication(self, medication_id: str) -> list[Prescription]:
 		self.database.cursor.execute(
 			"""
-SELECT (id, medication_id, quantity, doctor_name, patient_name, instructions)
+SELECT id, medication_id, quantity, doctor_name, patient_name, instructions
 	FROM prescriptions
-	WHERE medication_id = ?;", (medication_id,);""",
+	WHERE medication_id = %s;""",
 			(medication_id,)
 		)
 
@@ -208,13 +255,13 @@ class Inventory(typing.NamedTuple):
 class InventoryModel(Model):
 	def add_inventory(self, medication_id: str, quantity: int) -> None:
 		self.database.cursor.execute(
-			"INSERT INTO inventory (medication_id, quantity) VALUES (?, ?);",
+			"INSERT INTO inventory (medication_id, quantity) VALUES (%s, %s);",
 			(medication_id, quantity)
 		)
 
 	def inventory_for_medication(self, medication_id: str) -> list[Inventory]:
 		self.database.cursor.execute(
-			"SELECT id, medication_id, quantity, timestamp FROM inventory WHERE medication_id = ?;",
+			"SELECT id, medication_id, quantity, timestamp FROM inventory WHERE medication_id = %s;",
 			(medication_id,)
 		)
 
